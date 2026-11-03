@@ -1,0 +1,135 @@
+/* ---- username bar + tabs ---- */
+.userbar { display: flex; gap: 8px; }
+.search-box {
+    flex: 1; min-width: 0; padding: 12px 16px; font-size: 16px; border: 2px solid var(--panel-2);
+    border-radius: 8px; background: var(--panel); color: var(--strong);
+}
+.search-box:focus { outline: none; border-color: var(--accent); }
+.userbar button {
+    padding: 0 18px; font-size: 15px; border: 2px solid var(--panel-2); border-radius: 8px;
+    background: var(--panel); color: var(--text); cursor: pointer;
+}
+.userbar button:hover { border-color: var(--accent); color: var(--strong); }
+.user-note { min-height: 22px; margin: 6px 2px 10px; font-size: 14px; color: var(--muted); }
+.user-note.bad { color: #ff8a8a; }
+.user-note b { color: var(--strong); }
+
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--panel-2); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; }
+.tabs button {
+    padding: 10px 18px; font-size: 15px; background: none; border: none; color: var(--muted);
+    border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer; white-space: nowrap;
+}
+.tabs button:hover { color: var(--strong); }
+.tabs button.on { color: var(--strong); border-bottom-color: var(--accent); }
+.panel { display: none; }
+.panel.on { display: block; }
+
+.updated { margin-top: 30px; color: var(--muted); font-size: 13px; }
+
+/* ---- overview ---- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.tile { background: var(--panel); border-radius: 8px; padding: 14px 16px; }
+.tile .k { font-size: 13px; color: var(--muted); }
+.tile .v { font-size: 24px; font-weight: 600; color: var(--strong); margin-top: 2px; }
+.tile .v small { font-size: 15px; color: var(--muted); font-weight: 400; }
+.bar { height: 6px; background: var(--panel-2); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); }
+.bar.shiny > i { background: var(--shiny); }
+
+.boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.board { background: var(--panel); border-radius: 8px; padding: 16px; }
+.board h3 { font-size: 15px; color: var(--strong); margin-bottom: 10px; }
+.board ol { list-style: none; }
+.board li { display: flex; gap: 10px; padding: 6px 0; border-top: 1px solid var(--panel-2); align-items: baseline; }
+.board li:first-child { border-top: none; }
+.board .rank { width: 26px; flex: none; color: var(--muted); font-weight: 600; }
+.board li.r1 .rank { color: var(--gold); }
+.board .who { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.board .val { color: var(--strong); font-weight: 600; white-space: nowrap; }
+.board .sub { display: block; font-size: 13px; color: var(--muted); }
+.board li.me { background: rgba(74, 158, 255, .12); margin: 0 -8px; padding: 6px 8px; border-radius: 6px; }
+.board li.gap { border-top: 1px dashed var(--line); }
+.board .empty { color: var(--muted); font-size: 14px; }
+
+/* ---- fish log ---- */
+.log-info { color: var(--muted); margin-bottom: 10px; font-size: 14px; }
+/* Phones scroll the table sideways; wide screens keep the heading (and each
+   merged Series / Region / Fish name) in view while scrolling down instead. */
+@media (max-width: 960px) { .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } }
+@media (min-width: 961px) {
+    .fishlog thead { position: sticky; top: 0; z-index: 2; }
+    .fishlog td.m > div { position: sticky; top: calc(var(--thead-h, 90px) + 6px); }
+}
+table.fishlog { width: 100%; min-width: 900px; border-collapse: collapse; background: var(--panel); }
+.fishlog th { background: var(--panel-2); color: var(--strong); text-align: left; font-weight: 600; padding: 10px; white-space: nowrap; }
+.fishlog th.sortable { cursor: pointer; user-select: none; }
+.fishlog th.sortable:hover { color: var(--accent); }
+.fishlog th .arrow { color: var(--accent); margin-left: 4px; }
+.fishlog tr.filters th { padding: 6px 10px 10px; border-bottom: 2px solid var(--line); }
+.fishlog tr.filters input, .fishlog tr.filters select {
+    width: 100%; min-width: 70px; padding: 5px 7px; font-size: 13px; background: var(--panel);
+    color: var(--text); border: 1px solid var(--line); border-radius: 5px;
+}
+.fishlog td { padding: 6px 10px; border-bottom: 1px solid var(--panel-2); vertical-align: middle; }
+.fishlog td.m { vertical-align: top; }
+.fishlog td.unknown { color: var(--muted); }
+.fishlog .num { text-align: right; }
+.fishlog .pools-other, .fishlog .dim { color: var(--muted); }
+.fishlog .ties { font-size: 13px; color: var(--muted); }
+.variant { font-size: 13px; white-space: nowrap; }
+.variant.shiny { color: var(--gold); }
+
+.art { width: 72px; height: 48px; display: flex; align-items: center; justify-content: center; }
+.art img { max-width: 72px; max-height: 48px; }
+.art img.sil { filter: drop-shadow(0 0 1px #777); }
+.art img.seen { filter: grayscale(1) brightness(.38); }
+.art .none { width: 40px; height: 40px; border: 1px dashed var(--line); border-radius: 50%; color: var(--line);
+             display: flex; align-items: center; justify-content: center; font-size: 18px; }
+
+/* ---- profiles ---- */
+.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.pcard { background: var(--panel); border: 2px solid var(--panel-2); border-radius: 10px; padding: 14px 16px; cursor: pointer; text-align: left; color: var(--text); font: inherit; }
+.pcard:hover { border-color: var(--accent); }
+.pcard .nm { color: var(--strong); font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+.pcard .ln { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+.profile { display: grid; gap: 16px; }
+.phead { background: var(--panel); border-radius: 10px; padding: 18px 20px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+.phead .who { flex: 1; min-width: 220px; }
+.phead .nm { font-size: 26px; color: var(--strong); font-weight: 700; overflow-wrap: anywhere; }
+.phead .ln { color: var(--muted); margin-top: 2px; }
+.phead .lvl { min-width: 240px; flex: 1; }
+.phead .lvl .k { font-size: 13px; color: var(--muted); }
+.ranks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.ranks span { background: var(--panel-2); border-radius: 20px; padding: 3px 10px; font-size: 13px; }
+.ranks span.top { color: var(--gold); }
+
+.pgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .pgrid { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--panel); border-radius: 10px; padding: 16px 18px; }
+.box h3 { font-size: 15px; color: var(--strong); margin-bottom: 12px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px 16px; }
+.kv .k { font-size: 13px; color: var(--muted); }
+.kv .v { font-size: 18px; color: var(--strong); font-weight: 600; }
+
+.best { display: flex; gap: 14px; align-items: center; }
+.best .art { width: 108px; height: 72px; }
+.best .art img { max-width: 108px; max-height: 72px; }
+.best .nm { color: var(--strong); font-weight: 600; }
+.best .ln { color: var(--muted); font-size: 14px; }
+
+table.series { width: 100%; border-collapse: collapse; font-size: 14px; }
+.series th { text-align: left; color: var(--muted); font-weight: 400; padding: 0 0 6px; }
+.series td { padding: 6px 10px 6px 0; border-top: 1px solid var(--panel-2); }
+.series td.n { width: 30%; }
+.series .cnt { font-size: 12px; color: var(--muted); }
+.series .bar { margin-top: 3px; }
+
+.recent { list-style: none; }
+.recent li { display: flex; gap: 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--panel-2); }
+.recent li:first-child { border-top: none; }
+.recent .art { width: 54px; height: 36px; flex: none; }
+.recent .art img { max-width: 54px; max-height: 36px; }
+.recent .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.shiny-mark { color: var(--gold); }
+.back { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 14px; padding: 0; margin-bottom: 4px; }

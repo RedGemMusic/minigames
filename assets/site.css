@@ -1,0 +1,46 @@
+/* Shared look for redgemmusic.github.io: the same dark palette as the Playlist page. */
+:root {
+    --bg: #1a1a1a;
+    --panel: #2a2a2a;
+    --panel-2: #333;
+    --line: #444;
+    --text: #e0e0e0;
+    --muted: #888;
+    --strong: #fff;
+    --accent: #4a9eff;
+    --gold: #f2c14e;
+    --shiny: #e48cff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px 16px 40px;
+    line-height: 1.4;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+.crumbs { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--strong); }
+.crumbs .sep { margin: 0 6px; }
+
+h1 { color: var(--strong); margin-bottom: 20px; }
+h2 { color: var(--strong); font-size: 18px; margin-bottom: 12px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.card {
+    display: block; background: var(--panel); border: 2px solid var(--panel-2); border-radius: 10px;
+    padding: 20px; color: var(--text);
+}
+a.card:hover { border-color: var(--accent); text-decoration: none; }
+.card .icon { font-size: 34px; margin-bottom: 8px; }
+.card h2 { margin-bottom: 6px; }
+.card p { color: var(--muted); font-size: 14px; }

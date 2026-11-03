@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fish</title>
+    <link rel="stylesheet" href="../assets/site.css">
+    <link rel="stylesheet" href="fish.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="crumbs"><a href="../../">RedGemMusic</a><span class="sep">›</span><a href="../">Minigames</a><span class="sep">›</span>Fish</nav>
+        <h1>Fish</h1>
+
+        <div class="userbar">
+            <input type="text" id="user" class="search-box" placeholder="Your username, e.g. @Name" autocomplete="off" spellcheck="false">
+            <button type="button" id="clear">Clear</button>
+        </div>
+        <div class="user-note" id="userNote"></div>
+
+        <div class="tabs" role="tablist">
+            <button type="button" role="tab" data-tab="overview">Overview</button>
+            <button type="button" role="tab" data-tab="log">Fish Log</button>
+            <button type="button" role="tab" data-tab="profiles">Profiles</button>
+        </div>
+
+        <section id="overview" class="panel"></section>
+        <section id="log" class="panel"></section>
+        <section id="profiles" class="panel"></section>
+
+        <p class="updated" id="updated">Loading…</p>
+    </div>
+    <script src="fish.js"></script>
+</body>
+</html>
