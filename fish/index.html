@@ -22,11 +22,82 @@
             <button type="button" role="tab" data-tab="overview">Overview</button>
             <button type="button" role="tab" data-tab="log">Fish Log</button>
             <button type="button" role="tab" data-tab="profiles">Profiles</button>
+            <button type="button" role="tab" data-tab="help">How to play</button>
         </div>
 
         <section id="overview" class="panel"></section>
         <section id="log" class="panel"></section>
         <section id="profiles" class="panel"></section>
+        <section id="help" class="panel help">
+            <h2>Getting started</h2>
+            <p>Type <code>!fish</code> in the stream chat to start. You'll unlock the starting area, Animal Island, and
+               immediately cast your line. The game determines whether you catch a fish and what the fish is &ndash; no action
+               needed on your part.</p>
+            <p>You can play every 30 minutes. Catches award currency (G), and new catches are added to your fishing log.
+               Catching new fish unlocks new pools, game worlds, and game series to fish in.</p>
+
+            <h2>How bites work</h2>
+            <p>When you cast your line, you can get a bite from any fish in the location you're fishing in. At first, you can
+               only fish by series, with all of its fish mixed together. As you catch more unique fish in a series, you'll unlock
+               the ability to focus your efforts on regions (game worlds) in the series, and on pools within each game world.
+               This can help narrow down the odds of getting the fish you're looking for.</p>
+
+            <h2>How catches work</h2>
+            <p>Whether you catch a fish is determined automatically. Every fish has a catch chance. If you're successful, the
+               fish is caught: you're awarded G and, if it's a new catch, it's added to your fishing log. When you reach certain
+               G or unique catch milestones, you'll unlock new areas and features.</p>
+
+            <h2>Moving to a new location</h2>
+            <p>When you want to fish somewhere new, you can do it one of two ways:</p>
+            <ol>
+                <li>Use the <code>!move</code> command, e.g. <code>!move Stardew Valley</code>.
+                    <ul><li>This can be used even when you're on cooldown, and is usually the safer way to pick a new location.</li></ul></li>
+                <li>Use the <code>!fish</code> command and name the location, e.g. <code>!fish Stardew Valley</code>. Be aware,
+                    though, that this immediately uses your fishing attempt in the new location.</li>
+            </ol>
+            <p>Whichever you choose, the game finds the best match for the name you entered. If it's ambiguous which area you
+               mean, it asks you to clarify. For example, if you say <code>!fish river</code>, it won't know whether you mean
+               Stardew Valley's river or Animal Island's river.</p>
+            <p>Provided you've given enough information, it's pretty smart about figuring out where you mean to go, even if you
+               have typos.</p>
+
+            <h2>Rare spawns</h2>
+            <p>Occasionally, you'll see a notice on the stream that a rare fish is present. Whenever this happens, everyone is
+               allowed a cast to attempt it, independent of their normal fishing cooldown. Just type <code>!fish</code> like usual
+               and you'll attempt to catch the rare fish, even if you don't have the location unlocked.</p>
+
+            <h2>What's the point?</h2>
+            <p>The fun of the game is whatever you want it to be! You may want to:</p>
+            <ul>
+                <li>Complete your fishing log</li>
+                <li>Try to get high ratings</li>
+                <li>Try to catch shiny variants</li>
+                <li>Earn G</li>
+            </ul>
+
+            <h2>Commands</h2>
+            <ul class="cmds">
+                <li><code>!fish [optional location description]</code> &ndash; Attempts to catch a fish</li>
+                <li><code>!fishlog [optional location description] [optional "by" breakdown]</code> &ndash; Summarizes your
+                    unique catch progress
+                    <ul><li>E.g. <code>!fishlog Stardew Valley by pool</code> tells you your progress for each of the pools in
+                        Stardew Valley</li></ul></li>
+                <li><code>!fishdata</code> &ndash; Displays the link to the fish data page</li>
+                <li><code>!fishhelp</code> &ndash; Explains how to start fishing and links to this page</li>
+                <li><code>!fishseries</code> &ndash; Lists the series you've unlocked</li>
+                <li><code>!fishregions [series]</code> &ndash; Lists the regions you've unlocked within that series</li>
+                <li><code>!fishpools [region]</code> &ndash; Lists the pools you've unlocked within that region</li>
+                <li><code>!move [location description]</code> &ndash; Moves you to the location best matching your input</li>
+                <li><code>!level</code> &ndash; Displays your level and progress to the next level</li>
+                <li><code>!fishrank</code> &ndash; Displays your current rank among fishers and what you need to advance to the next rank</li>
+                <li><code>!fishrankings</code> &ndash; Displays the top fishers</li>
+                <li><code>!showoff [optional fish/location/shiny description]</code> &ndash; Displays your best ever catch
+                    according to the descriptors you entered</li>
+                <li><code>!challenge</code> &ndash; Displays a reminder of your challenge</li>
+                <li><code>!setchallenge [easy/medium/hard/elite]</code> &ndash; Sets the difficulty you'd like your challenges to be</li>
+                <li><code>!catchtreasure [on/off]</code> &ndash; Turns treasure catching on or off</li>
+            </ul>
+        </section>
 
         <p class="updated" id="updated">Loading…</p>
     </div>

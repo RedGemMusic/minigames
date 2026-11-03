@@ -46,7 +46,7 @@ function init(data) {
     D.players.forEach((p, i) => playerByKey.set(norm(p.n), i));
 
     const q = new URLSearchParams(location.search);
-    if (['overview', 'log', 'profiles'].includes(q.get('tab'))) tab = q.get('tab');
+    if (['overview', 'log', 'profiles', 'help'].includes(q.get('tab'))) tab = q.get('tab');
     $('#user').value = q.get('user') || '';
     $('#user').addEventListener('input', () => { resolveUser(); renderAll(); });
     $('#clear').addEventListener('click', () => { $('#user').value = ''; resolveUser(); renderAll(); $('#user').focus(); });
@@ -79,7 +79,8 @@ function renderAll() {
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === tab));
     if (tab === 'overview') renderOverview();
     else if (tab === 'log') renderLog();
-    else renderProfiles();
+    else if (tab === 'profiles') renderProfiles();
+    // 'help' is static HTML in index.html
 }
 
 function setUser(i) {

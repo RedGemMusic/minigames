@@ -26,6 +26,16 @@
 
 .updated { margin-top: 30px; color: var(--muted); font-size: 13px; }
 
+/* ---- how to play ---- */
+.help { max-width: 820px; }
+.help h2 { margin: 26px 0 8px; }
+.help h2:first-child { margin-top: 0; }
+.help p { margin-bottom: 10px; }
+.help ol, .help ul { margin: 0 0 10px 22px; }
+.help li { margin-bottom: 5px; }
+.help li ul { margin: 5px 0 0 20px; }
+.help code { background: var(--panel-2); color: var(--strong); padding: 1px 6px; border-radius: 4px; font-size: 14px; }
+
 /* ---- overview ---- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .tile { background: var(--panel); border-radius: 8px; padding: 14px 16px; }
