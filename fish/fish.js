@@ -124,6 +124,7 @@ function boardDefs(uniq) {
         { title: 'Lifetime G earned', val: i => D.players[i].g, show: v => fmt(v) + ' ' + D.currency },
         {
             title: 'Best catch ever', val: i => D.players[i].best ? D.players[i].best[2] : 0, show: v => fmt(v) + ' ' + D.currency,
+            pic: i => { const b = D.players[i].best; return art(b[0], b[1], 'mine'); },
             sub: i => { const b = D.players[i].best; return `<span class="fname">${esc(fishName(b[0]))}</span>${b[1] ? ` <span class="shiny-mark">${SHINY}</span>` : ''} · rating ${b[3] ?? '?'}`; }
         },
         { title: 'Unique fish caught', val: i => uniq[i][0] + uniq[i][1], show: v => fmt(v), sub: i => `${uniq[i][0]} normal · ${uniq[i][1]} shiny` },
@@ -161,7 +162,7 @@ function renderOverview() {
         const r = ranked(def);
         const row = (x, extra) => `<li class="${x.rank <= 3 ? 'r' + x.rank : ''} ${x.i === user ? 'me' : ''} ${extra || ''}">
             <span class="rank">#${x.rank}</span>
-            <span class="who"><a href="#" data-p="${x.i}">${esc(D.players[x.i].n)}</a>${def.sub ? `<span class="sub">${def.sub(x.i)}</span>` : ''}</span>
+            <span class="who">${def.pic ? `<span class="pic">${def.pic(x.i)}</span>` : ''}<a href="#" data-p="${x.i}">${esc(D.players[x.i].n)}</a>${def.sub ? `<span class="sub">${def.sub(x.i)}</span>` : ''}</span>
             <span class="val">${def.show(x.v)}</span></li>`;
         const top = r.filter(x => x.rank <= 3);
         let list = top.map(x => row(x)).join('');
@@ -373,9 +374,9 @@ function renderProfiles() {
 
     const kv = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
     const stats = kv('Casts', fmt(p.casts)) + kv('Fish caught', fmt(p.fish)) + kv('Got away', fmt(p.casts - p.landed)) +
-        kv('Catch rate', pct(p.landed, p.casts) + '%') + kv('Treasures', fmt(p.treasure)) +
+        kv('Catch rate', pct(p.landed, p.casts) + '%') +
         kv('Common catches', fmt(p.tiers[0])) + kv('Uncommon catches', fmt(p.tiers[1])) + kv('Rare catches', fmt(p.tiers[2])) +
-        kv('Legendary catches', fmt(p.legend)) + kv('Shiny catches', fmt(p.shinies)) +
+        kv('Legendary catches', fmt(p.legend)) + kv('Shiny catches', fmt(p.shinies)) + kv('Treasures', fmt(p.treasure)) +
         kv('Challenges completed', fmt(p.chal)) + kv('G earned', fmt(p.g)) +
         kv('Fishing since', new Date(p.first + 'T00:00:00').toLocaleDateString());   // a day, read as local
 

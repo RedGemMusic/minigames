@@ -60,6 +60,11 @@
 .board .val { color: var(--strong); font-weight: 600; white-space: nowrap; }
 .board .sub { display: block; font-size: 13px; color: var(--muted); }
 .board .sub .fname { color: var(--text); }
+/* Best catch ever: the fish's art, no taller than the username line. */
+.board .pic { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.board .pic .art { width: 30px; height: 20px; }
+.board .pic .art img { max-width: 30px; max-height: 20px; }
+.board .pic .art .none { width: 18px; height: 18px; font-size: 11px; }
 .board li.me { background: rgba(74, 158, 255, .12); margin: 0 -8px; padding: 6px 8px; border-radius: 6px; }
 .board li.gap { border-top: 1px dashed var(--line); }
 .board .empty { color: var(--muted); font-size: 14px; }
