@@ -44,7 +44,7 @@
 .tile .v small { font-size: 15px; color: var(--muted); font-weight: 400; }
 .bar { height: 6px; background: var(--panel-2); border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--accent); }
-.bar.shiny > i { background: var(--shiny); }
+.bar.shiny > i { background: var(--gold); }
 
 .boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .board { background: var(--panel); border-radius: 8px; padding: 16px; }
@@ -54,9 +54,12 @@
 .board li:first-child { border-top: none; }
 .board .rank { width: 26px; flex: none; color: var(--muted); font-weight: 600; }
 .board li.r1 .rank { color: var(--gold); }
+.board li.r2 .rank { color: var(--silver); }
+.board li.r3 .rank { color: var(--bronze); }
 .board .who { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .board .val { color: var(--strong); font-weight: 600; white-space: nowrap; }
 .board .sub { display: block; font-size: 13px; color: var(--muted); }
+.board .sub .fname { color: var(--text); }
 .board li.me { background: rgba(74, 158, 255, .12); margin: 0 -8px; padding: 6px 8px; border-radius: 6px; }
 .board li.gap { border-top: 1px dashed var(--line); }
 .board .empty { color: var(--muted); font-size: 14px; }
@@ -112,7 +115,10 @@ table.fishlog { width: 100%; min-width: 900px; border-collapse: collapse; backgr
 .phead .lvl .k { font-size: 13px; color: var(--muted); }
 .ranks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .ranks span { background: var(--panel-2); border-radius: 20px; padding: 3px 10px; font-size: 13px; }
-.ranks span.top { color: var(--gold); }
+.ranks span.r1 { color: var(--gold); }
+.ranks span.r2 { color: var(--silver); }
+.ranks span.r3 { color: var(--bronze); }
+.ranks span.r1, .ranks span.r2, .ranks span.r3 { box-shadow: inset 0 0 0 1px currentColor; }
 
 .pgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
 @media (max-width: 760px) { .pgrid { grid-template-columns: minmax(0, 1fr); } }

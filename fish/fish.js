@@ -7,7 +7,8 @@
 //   fish    [fishId, regionIx, shinyEligible, name|null, imgFlags]  (name null = no one has caught it)
 //           imgFlags: 1 normal art, 2 shiny art, 4 silhouette (art exists only for caught variants)
 //   players [{n, lv, xp, cur, next, casts, landed, fish, treasure, shinies, legend,
-//             g, chal, first (day), best: [fishId, shiny, value, rating], recent: [[fishId, shiny, rating]]}]
+//             tiers: [common, uncommon, rare], g, chal, first (day),
+//             best: [fishId, shiny, value, rating], recent: [[fishId, shiny, value, rating]]}]
 //   No times of play are published (privacy), so recent catches are an order, not a timeline.
 //   catches [playerIx, fishId, shiny, count, bestRating, [poolIx]]
 
@@ -123,7 +124,7 @@ function boardDefs(uniq) {
         { title: 'Lifetime G earned', val: i => D.players[i].g, show: v => fmt(v) + ' ' + D.currency },
         {
             title: 'Best catch ever', val: i => D.players[i].best ? D.players[i].best[2] : 0, show: v => fmt(v) + ' ' + D.currency,
-            sub: i => { const b = D.players[i].best; return `${esc(fishName(b[0]))}${b[1] ? ` <span class="shiny-mark">${SHINY} Shiny</span>` : ''} · rating ${b[3] ?? '?'}`; }
+            sub: i => { const b = D.players[i].best; return `<span class="fname">${esc(fishName(b[0]))}</span>${b[1] ? ` <span class="shiny-mark">${SHINY}</span>` : ''} · rating ${b[3] ?? '?'}`; }
         },
         { title: 'Unique fish caught', val: i => uniq[i][0] + uniq[i][1], show: v => fmt(v), sub: i => `${uniq[i][0]} normal · ${uniq[i][1]} shiny` },
         { title: 'Total fish caught', val: i => D.players[i].fish, show: v => fmt(v) },
@@ -158,7 +159,7 @@ function renderOverview() {
     h += '<h2>Top fishers</h2><div class="boards">';
     for (const def of boardDefs(uniqueCounts())) {
         const r = ranked(def);
-        const row = (x, extra) => `<li class="${x.rank === 1 ? 'r1' : ''} ${x.i === user ? 'me' : ''} ${extra || ''}">
+        const row = (x, extra) => `<li class="${x.rank <= 3 ? 'r' + x.rank : ''} ${x.i === user ? 'me' : ''} ${extra || ''}">
             <span class="rank">#${x.rank}</span>
             <span class="who"><a href="#" data-p="${x.i}">${esc(D.players[x.i].n)}</a>${def.sub ? `<span class="sub">${def.sub(x.i)}</span>` : ''}</span>
             <span class="val">${def.show(x.v)}</span></li>`;
@@ -184,7 +185,7 @@ const COLS = [
     { key: 'variant', label: 'Type' },
     { key: 'pools', label: 'Found in' },
     { key: 'count', label: 'Caught' },
-    { key: 'best', label: 'Best Catch #1' },
+    { key: 'best', label: 'Best Catch' },
 ];
 
 function logRows() {
@@ -367,13 +368,14 @@ function renderProfiles() {
            <div class="bar"><i style="width:${pct(p.xp - p.cur, p.next - p.cur)}%"></i></div>`;
     const ranks = boardDefs(uniq).map(def => {
         const r = ranked(def).find(x => x.i === user);
-        return r ? `<span class="${r.rank <= 3 ? 'top' : ''}">#${r.rank} ${def.title}</span>` : '';
+        return r ? `<span class="${r.rank <= 3 ? 'r' + r.rank : ''}">#${r.rank} ${def.title}</span>` : '';
     }).join('');
 
     const kv = (k, v) => `<div><div class="k">${k}</div><div class="v">${v}</div></div>`;
     const stats = kv('Casts', fmt(p.casts)) + kv('Fish caught', fmt(p.fish)) + kv('Got away', fmt(p.casts - p.landed)) +
         kv('Catch rate', pct(p.landed, p.casts) + '%') + kv('Treasures', fmt(p.treasure)) +
-        kv('Shiny catches', fmt(p.shinies)) + kv('Legendary catches', fmt(p.legend)) +
+        kv('Common catches', fmt(p.tiers[0])) + kv('Uncommon catches', fmt(p.tiers[1])) + kv('Rare catches', fmt(p.tiers[2])) +
+        kv('Legendary catches', fmt(p.legend)) + kv('Shiny catches', fmt(p.shinies)) +
         kv('Challenges completed', fmt(p.chal)) + kv('G earned', fmt(p.g)) +
         kv('Fishing since', new Date(p.first + 'T00:00:00').toLocaleDateString());   // a day, read as local
 
@@ -388,9 +390,9 @@ function renderProfiles() {
     const b = p.best;
     const best = b ? `<div class="best">${art(b[0], b[1], 'mine')}<div><div class="nm">${esc(fishName(b[0]))}${b[1] ? ` <span class="shiny-mark">${SHINY}</span>` : ''}</div>
         <div class="ln">${fmt(b[2])} ${D.currency} · rating ${b[3] ?? '?'}</div></div></div>` : '<p class="dim">No catches yet.</p>';
-    const recent = p.recent.length ? '<ul class="recent">' + p.recent.map(([fid, shiny, rating]) =>
+    const recent = p.recent.length ? '<ul class="recent">' + p.recent.map(([fid, shiny, value, rating]) =>
         `<li>${art(fid, shiny, 'mine')}<span class="nm">${esc(fishName(fid))}${shiny ? ` <span class="shiny-mark">${SHINY}</span>` : ''}
-         <span class="dim"> · ${rating ?? '?'}</span></span></li>`).join('') + '</ul>' : '<p class="dim">No catches yet.</p>';
+         <span class="dim"> · ${fmt(value)} ${D.currency} · rating ${rating ?? '?'}</span></span></li>`).join('') + '</ul>' : '<p class="dim">No catches yet.</p>';
 
     el.innerHTML = `<button type="button" class="back" id="allFishers">‹ All fishers</button>
       <div class="profile">
@@ -399,11 +401,11 @@ function renderProfiles() {
             <div class="lvl">${lvl}</div></div>
         <div class="pgrid">
           <div style="display:grid;gap:16px;align-content:start">
+            <div class="box"><h3>Best catch ever</h3>${best}</div>
             <div class="box"><h3>Stats</h3><div class="kv">${stats}</div></div>
             <div class="box"><h3>Collection</h3><table class="series"><tr><th>Series</th><th>Normal</th><th>Shiny</th></tr>${series}</table></div>
           </div>
           <div style="display:grid;gap:16px;align-content:start">
-            <div class="box"><h3>Best catch</h3>${best}</div>
             <div class="box"><h3>Recent catches</h3>${recent}</div>
           </div>
         </div>
