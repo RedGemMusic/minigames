@@ -28,7 +28,9 @@ let user = null;                 // player index, or null = everyone
 let tab = 'overview';
 let pview = 'card';              // profile: 'card' or 'log' (the fishing-log grid)
 let board = null;                // overview: index of the leaderboard shown in full, or null
-const grid = { split: 'none', shiny: false, flipped: new Set() };   // flipped: fishIds showing the other side
+// flipped: fishIds showing the other side; hide: leave out fish this fisher hasn't caught
+// (on the side chosen under Show). Counts always cover every fish.
+const grid = { split: 'none', shiny: false, hide: false, flipped: new Set() };
 const sortState = { col: null, dir: 1 };
 const filters = { series: '', region: '', fish: '', art: '', variant: '', pools: '', count: '', best: '' };
 
@@ -504,9 +506,11 @@ function renderGrid(el) {
     const title = g => grid.split === 'series' ? esc(D.series[g.key])
         : grid.split === 'region' ? (D.series[D.regions[g.key][1]] === D.regions[g.key][0] ? esc(D.regions[g.key][0])
             : `${esc(D.series[D.regions[g.key][1]])} <span class="sep">›</span> ${esc(D.regions[g.key][0])}`) : '';
-    const sections = groups.map(g => `<section class="gsec">${grid.split === 'none' ? ''
+    const shown = list => grid.hide ? list.filter(f => best.has(f[0] * 2 + (grid.shiny ? 1 : 0))) : list;
+    const sections = groups.filter(g => shown(g.fish).length).map(g => `<section class="gsec">${grid.split === 'none' ? ''
         : `<h3>${title(g)} <span class="cnt">${count(g.fish)}</span></h3>`}
-        <div class="fgrid">${g.fish.map(tileHtml).join('')}</div></section>`).join('');
+        <div class="fgrid">${shown(g.fish).map(tileHtml).join('')}</div></section>`).join('')
+        || `<p class="dim">No ${grid.shiny ? 'shiny ' : ''}fish caught yet.</p>`;
 
     const seg = (key, opts) => `<span class="seg">${opts.map(([v, label]) =>
         `<button type="button" data-${key}="${v}" class="${String(grid[key]) === String(v) ? 'on' : ''}">${label}</button>`).join('')}</span>`;
@@ -515,6 +519,7 @@ function renderGrid(el) {
       <div class="gridbar">
         <span><span class="seg-label">Group</span>${seg('split', [['none', 'All'], ['series', 'By series'], ['region', 'By region']])}</span>
         <span><span class="seg-label">Show</span>${seg('shiny', [[false, 'Normal'], [true, SHINY + ' Shiny']])}</span>
+        <label class="check"><input type="checkbox" id="hideUncaught"${grid.hide ? ' checked' : ''}> Hide uncaught</label>
       </div>
       <p class="grid-hint">Click a fish to flip between its normal and ${SHINY} shiny sides.</p>
       ${sections}`;
@@ -524,6 +529,7 @@ function renderGrid(el) {
     el.querySelectorAll('[data-shiny]').forEach(b => b.addEventListener('click', () => {
         grid.shiny = b.dataset.shiny === 'true'; grid.flipped.clear(); renderGrid(el);
     }));
+    $('#hideUncaught').addEventListener('change', e => { grid.hide = e.target.checked; renderGrid(el); });
     // Flipping one fish redraws only its tile, so the page doesn't jump. One
     // delegated listener, replaced on each render (it closes over this render's data).
     if (el._flip) el.removeEventListener('click', el._flip);
