@@ -4,7 +4,7 @@
 //
 // data/fish.json:
 //   series  [name]                    regions [name, seriesIx]      pools [name]
-//   fish    [fishId, regionIx, shinyEligible, name|null, imgFlags]  (name null = no one has caught it)
+//   fish    [fishId, regionIx, shinyEligible, name|null, imgFlags, baseValue]  (name null = no one has caught it)
 //           imgFlags: 1 normal art, 2 shiny art, 4 silhouette (art exists only for caught variants)
 //   players [{n, lv, xp, cur, next, casts, landed, fish, treasure, shinies, legend,
 //             tiers: [common, uncommon, rare], g, chal, first (day),
@@ -26,6 +26,9 @@ const byVariant = new Map();     // fishId*2+shiny -> [{p, count, best, pools}]
 const playerByKey = new Map();   // normalized name -> player index
 let user = null;                 // player index, or null = everyone
 let tab = 'overview';
+let pview = 'card';              // profile: 'card' or 'log' (the fishing-log grid)
+let board = null;                // overview: index of the leaderboard shown in full, or null
+const grid = { split: 'none', shiny: false, flipped: new Set() };   // flipped: fishIds showing the other side
 const sortState = { col: null, dir: 1 };
 const filters = { series: '', region: '', fish: '', art: '', variant: '', pools: '', count: '', best: '' };
 
@@ -48,10 +51,15 @@ function init(data) {
 
     const q = new URLSearchParams(location.search);
     if (['overview', 'log', 'profiles', 'help'].includes(q.get('tab'))) tab = q.get('tab');
+    if (q.get('view') === 'log') pview = 'log';
+    if (/^[0-3]$/.test(q.get('board') || '')) board = +q.get('board');
     $('#user').value = q.get('user') || '';
     $('#user').addEventListener('input', () => { resolveUser(); renderAll(); });
     $('#clear').addEventListener('click', () => { $('#user').value = ''; resolveUser(); renderAll(); $('#user').focus(); });
-    document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; renderAll(); }));
+    // A tab always opens its main page (the board summary, the profile card).
+    document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+        tab = b.dataset.tab; board = null; pview = 'card'; renderAll();
+    }));
 
     const up = new Date(D.updated);
     $('#updated').textContent = `Updated ${up.toLocaleString()} · refreshed about every 15 minutes`;
@@ -75,16 +83,19 @@ function renderAll() {
     const q = new URLSearchParams();
     if (user !== null) q.set('user', D.players[user].n.replace(/^@/, ''));
     if (tab !== 'overview') q.set('tab', tab);
+    if (tab === 'profiles' && user !== null && pview === 'log') q.set('view', 'log');
+    if (tab === 'overview' && board !== null) q.set('board', board);
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === tab));
-    if (tab === 'overview') renderOverview();
+    if (tab === 'overview') board === null ? renderOverview() : renderFullBoard();
     else if (tab === 'log') renderLog();
     else if (tab === 'profiles') renderProfiles();
     // 'help' is static HTML in index.html
 }
 
 function setUser(i) {
+    pview = 'card';
     $('#user').value = D.players[i].n;
     resolveUser();
     renderAll();
@@ -158,22 +169,47 @@ function renderOverview() {
         '</div>';
 
     h += '<h2>Top fishers</h2><div class="boards">';
-    for (const def of boardDefs(uniqueCounts())) {
+    boardDefs(uniqueCounts()).forEach((def, k) => {
         const r = ranked(def);
-        const row = (x, extra) => `<li class="${x.rank <= 3 ? 'r' + x.rank : ''} ${x.i === user ? 'me' : ''} ${extra || ''}">
-            <span class="rank">#${x.rank}</span>
-            <span class="who">${def.pic ? `<span class="pic">${def.pic(x.i)}</span>` : ''}<a href="#" data-p="${x.i}">${esc(D.players[x.i].n)}</a>${def.sub ? `<span class="sub">${def.sub(x.i)}</span>` : ''}</span>
-            <span class="val">${def.show(x.v)}</span></li>`;
         const top = r.filter(x => x.rank <= 3);
-        let list = top.map(x => row(x)).join('');
+        let list = top.map(x => boardRow(def, x)).join('');
         const mine = user !== null && r.find(x => x.i === user);
-        if (mine && mine.rank > 3) list += row(mine, 'gap');
-        h += `<div class="board"><h3>${def.title}</h3>${list ? `<ol>${list}</ol>` : '<p class="empty">No catches yet.</p>'}</div>`;
-    }
+        if (mine && mine.rank > 3) list += boardRow(def, mine, 'gap');
+        h += `<div class="board"><h3><button type="button" class="drill" data-board="${k}">${def.title}</button></h3>
+            ${list ? `<ol>${list}</ol>` : '<p class="empty">No catches yet.</p>'}
+            ${r.length ? `<button type="button" class="more" data-board="${k}">Full rankings (${r.length}) ›</button>` : ''}</div>`;
+    });
     h += '</div>';
     const el = $('#overview');
     el.innerHTML = h;
+    wireBoard(el);
+}
+
+function boardRow(def, x, extra) {
+    return `<li class="${x.rank <= 3 ? 'r' + x.rank : ''} ${x.i === user ? 'me' : ''} ${extra || ''}">
+        <span class="rank">#${x.rank}</span>
+        <span class="who"><a href="#" data-p="${x.i}">${esc(D.players[x.i].n)}</a></span>
+        <span class="val">${def.show(x.v)}</span>
+        ${def.sub ? `<span class="sub">${def.pic ? `<span class="pic">${def.pic(x.i)}</span>` : ''}${def.sub(x.i)}</span>` : ''}</li>`;
+}
+
+// Names open that fisher's profile; board headings / "Full rankings" open the whole board.
+function wireBoard(el) {
     el.querySelectorAll('a[data-p]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); tab = 'profiles'; setUser(+a.dataset.p); }));
+    el.querySelectorAll('[data-board]').forEach(b => b.addEventListener('click', () => { board = +b.dataset.board; renderAll(); window.scrollTo(0, 0); }));
+}
+
+// One leaderboard in full: every fisher with anything to rank on it.
+function renderFullBoard() {
+    const defs = boardDefs(uniqueCounts()), def = defs[board], r = ranked(def);
+    const el = $('#overview');
+    el.innerHTML = `<button type="button" class="back" id="backBoards">‹ Overview</button>
+      <h2>${def.title} <span class="cnt">${r.length} fisher${r.length === 1 ? '' : 's'}</span></h2>
+      <div class="gridbar">${`<span class="seg">${defs.map((d, k) =>
+          `<button type="button" data-board="${k}" class="${k === board ? 'on' : ''}">${d.title}</button>`).join('')}</span>`}</div>
+      <div class="board full">${r.length ? `<ol>${r.map(x => boardRow(def, x)).join('')}</ol>` : '<p class="empty">No catches yet.</p>'}</div>`;
+    $('#backBoards').addEventListener('click', () => { board = null; renderAll(); window.scrollTo(0, 0); });
+    wireBoard(el);
 }
 
 // ------------------------------------------------------------------ fish log
@@ -360,6 +396,7 @@ function renderProfiles() {
         el.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => setUser(+b.dataset.p)));
         return;
     }
+    if (pview === 'log') return renderGrid(el);
     const p = D.players[user];
 
     // Level bar (XP is the G earned; the level table is cumulative).
@@ -399,7 +436,9 @@ function renderProfiles() {
       <div class="profile">
         <div class="phead"><div class="who"><div class="nm">${esc(p.n)}</div>
             <div class="ln">Level ${p.lv}</div><div class="ranks">${ranks}</div></div>
-            <div class="lvl">${lvl}</div></div>
+            <div class="lvl">${lvl}</div>
+            <button type="button" class="logbtn" id="openLog"><span class="t">Fishing Log</span>
+              <span class="c">${uniq[user][0]} / ${D.fish.length}</span></button></div>
         <div class="pgrid">
           <div style="display:grid;gap:16px;align-content:start">
             <div class="box"><h3>Best catch ever</h3>${best}</div>
@@ -412,4 +451,104 @@ function renderProfiles() {
         </div>
       </div>`;
     $('#allFishers').addEventListener('click', () => { $('#user').value = ''; resolveUser(); renderAll(); });
+    $('#openLog').addEventListener('click', () => { pview = 'log'; renderAll(); window.scrollTo(0, 0); });
+}
+
+// ------------------------------------------------------------------ profile: fishing-log grid
+
+// Game order: series > region > base value > name (unnamed fish last).
+function gridOrder(a, b) {
+    return seriesOf(a) - seriesOf(b) || a[1] - b[1] || a[5] - b[5] ||
+        (a[3] == null) - (b[3] == null) || (a[3] || '').localeCompare(b[3] || '') || a[0] - b[0];
+}
+
+function renderGrid(el) {
+    const p = D.players[user];
+    const best = new Map();   // fishId*2+shiny -> this player's best rating (null = no rating)
+    for (const [pi, fid, shiny, , b] of D.catches) if (pi === user) best.set(fid * 2 + shiny, b);
+    const fish = [...D.fish].sort(gridOrder);
+
+    const sideOf = f => f[2] && (grid.shiny !== grid.flipped.has(f[0])) ? 1 : 0;
+    const tileHtml = f => {
+        const fid = f[0], shiny = sideOf(f), k = fid * 2 + shiny;
+        const state = best.has(k) ? 'mine' : byVariant.has(k) ? 'seen' : 'none';
+        const r = state === 'mine' ? best.get(k) : null;
+        const rating = r == null ? '' : Math.round(r) >= 100 ? '100⭐' : Math.round(r);
+        // A fish's name is public once anyone has caught either side (as in the Fish Log).
+        const name = f[3] == null ? '???' : f[3].split(' ').map(w => `<span class="w">${esc(w)}</span>`).join(' ');
+        let mark = '', tip = '';
+        if (f[2]) {
+            const cls = shiny ? 'on' : best.has(fid * 2 + 1) ? 'have' : 'off';
+            tip = shiny ? 'Shiny. Click for the normal one'
+                : cls === 'have' ? 'You have the shiny. Click to see it' : 'Shiny not caught yet. Click to see it';
+            mark = `<span class="sp ${cls}" aria-hidden="true">${SHINY}</span>`;
+        }
+        const tag = f[2] ? 'button' : 'div';
+        return `<${tag} ${f[2] ? `type="button" data-flip="${fid}" title="${tip}"` : ''} class="gt ${state} ${shiny && state === 'mine' ? 'shiny' : ''}">
+            <span class="rt">${rating}</span>${mark}${art(fid, shiny, state)}
+            <span class="nm"><span class="nt">${name}</span></span></${tag}>`;
+    };
+
+    // Sections: one continuous grid, or one per series / region, each with its count
+    // for the side being shown.
+    const groups = [];
+    for (const f of fish) {
+        const key = grid.split === 'series' ? seriesOf(f) : grid.split === 'region' ? f[1] : 0;
+        if (!groups.length || groups[groups.length - 1].key !== key) groups.push({ key, fish: [] });
+        groups[groups.length - 1].fish.push(f);
+    }
+    const count = list => {
+        const pool = grid.shiny ? list.filter(f => f[2]) : list;
+        return `${pool.filter(f => best.has(f[0] * 2 + (grid.shiny ? 1 : 0))).length} / ${pool.length}`;
+    };
+    const title = g => grid.split === 'series' ? esc(D.series[g.key])
+        : grid.split === 'region' ? (D.series[D.regions[g.key][1]] === D.regions[g.key][0] ? esc(D.regions[g.key][0])
+            : `${esc(D.series[D.regions[g.key][1]])} <span class="sep">›</span> ${esc(D.regions[g.key][0])}`) : '';
+    const sections = groups.map(g => `<section class="gsec">${grid.split === 'none' ? ''
+        : `<h3>${title(g)} <span class="cnt">${count(g.fish)}</span></h3>`}
+        <div class="fgrid">${g.fish.map(tileHtml).join('')}</div></section>`).join('');
+
+    const seg = (key, opts) => `<span class="seg">${opts.map(([v, label]) =>
+        `<button type="button" data-${key}="${v}" class="${String(grid[key]) === String(v) ? 'on' : ''}">${label}</button>`).join('')}</span>`;
+    el.innerHTML = `<button type="button" class="back" id="backProfile">‹ ${esc(p.n)}'s profile</button>
+      <h2>${esc(p.n)}'s Fishing Log <span class="cnt">${count(fish)}${grid.shiny ? ' shiny' : ''}</span></h2>
+      <div class="gridbar">
+        <span><span class="seg-label">Group</span>${seg('split', [['none', 'All'], ['series', 'By series'], ['region', 'By region']])}</span>
+        <span><span class="seg-label">Show</span>${seg('shiny', [[false, 'Normal'], [true, SHINY + ' Shiny']])}</span>
+      </div>
+      <p class="grid-hint">Click a fish to flip between its normal and ${SHINY} shiny sides.</p>
+      ${sections}`;
+
+    $('#backProfile').addEventListener('click', () => { pview = 'card'; renderAll(); window.scrollTo(0, 0); });
+    el.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click', () => { grid.split = b.dataset.split; renderGrid(el); }));
+    el.querySelectorAll('[data-shiny]').forEach(b => b.addEventListener('click', () => {
+        grid.shiny = b.dataset.shiny === 'true'; grid.flipped.clear(); renderGrid(el);
+    }));
+    // Flipping one fish redraws only its tile, so the page doesn't jump. One
+    // delegated listener, replaced on each render (it closes over this render's data).
+    if (el._flip) el.removeEventListener('click', el._flip);
+    el._flip = onFlip;
+    el.addEventListener('click', onFlip);
+    function onFlip(e) {
+        const t = e.target.closest('[data-flip]');
+        if (!t || !el.contains(t)) return;
+        const fid = +t.dataset.flip;
+        if (grid.flipped.has(fid)) grid.flipped.delete(fid); else grid.flipped.add(fid);
+        t.outerHTML = tileHtml(fishById.get(fid));
+        const fresh = el.querySelector(`[data-flip="${fid}"]`);
+        fresh.focus();
+        squeezeWords(fresh);
+    }
+    squeezeWords(el);
+}
+
+// A single word too wide for its tile is squeezed sideways to fit, same font height.
+function squeezeWords(root) {
+    root.querySelectorAll('.gt .w').forEach(w => {
+        const box = w.closest('.nt').clientWidth, width = w.getBoundingClientRect().width;  // (inline: no scrollWidth)
+        if (!box || width <= box) return;
+        const r = box / width;
+        w.style.cssText = `display:inline-block;width:${box}px`;
+        w.innerHTML = `<span style="display:inline-block;transform:scaleX(${r.toFixed(3)});transform-origin:left">${w.innerHTML}</span>`;
+    });
 }
