@@ -179,28 +179,33 @@ h2 .cnt, .gsec h3 .cnt { font-size: 14px; font-weight: 400; color: var(--muted);
 .gsec h3 { font-size: 16px; color: var(--strong); margin: 4px 0 10px; }
 .gsec h3 .sep { color: var(--muted); font-weight: 400; }
 
-/* Every tile is the same fixed size: rating top left, shiny mark top right,
-   the art in the middle, the name at the bottom. */
-.fgrid { display: grid; grid-template-columns: repeat(auto-fill, 156px); gap: 10px; margin-bottom: 24px; }
+/* Every tile is the same fixed size: rating top left, shiny mark top right, the art
+   in the middle, the name (two lines' room) at the bottom. Every length is a multiple
+   of --s, so Small (0.5) is Large scaled down by half. */
+.fgrid { --s: 1; --fs: calc(14px * var(--s)); display: grid; grid-template-columns: repeat(auto-fill, calc(124px * var(--s)));
+         gap: calc(8px * var(--s)); margin-bottom: 24px; }
+.fgrid.small { --s: .5; }
 .gt {
-    position: relative; width: 156px; height: 176px; padding: 26px 8px 8px;
+    position: relative; width: calc(124px * var(--s)); height: calc(140px * var(--s));
+    padding: calc(22px * var(--s)) calc(6px * var(--s)) calc(5px * var(--s));
     display: flex; flex-direction: column; align-items: center;
-    background: var(--panel); border: 2px solid var(--panel-2); border-radius: 10px;
+    background: var(--panel); border: calc(2px * var(--s)) solid var(--panel-2); border-radius: calc(10px * var(--s));
     color: var(--text); font: inherit; text-align: center;
 }
 button.gt { cursor: pointer; }
 button.gt:hover { border-color: var(--line); }
 button.gt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .gt.shiny { border-color: rgba(242, 193, 78, .45); }  /* a shiny you've caught */
-.gt .rt { position: absolute; top: 6px; left: 9px; font-size: 13px; font-weight: 600; color: var(--strong); }
-.gt .sp { position: absolute; top: 4px; right: 8px; font-size: 15px; transition: transform .12s; }
-.gt .sp.have { opacity: .45; }                          /* viewing normal, you have the shiny */
+.gt .rt { position: absolute; top: calc(5px * var(--s)); left: calc(7px * var(--s)); font-size: calc(13px * var(--s)); font-weight: 600; color: var(--strong); }
+.gt .sp { position: absolute; top: calc(3px * var(--s)); right: calc(6px * var(--s)); font-size: calc(15px * var(--s)); transition: transform .12s; }
+.gt .sp.have { opacity: .45; }                          /* viewing normal, the shiny is caught */
 .gt .sp.off { filter: grayscale(1); opacity: .22; }     /* shiny not caught yet */
 button.gt:hover .sp { transform: scale(1.2); }
-.gt .art { width: 108px; height: 72px; flex: none; }
-.gt .art img { max-width: 108px; max-height: 72px; }
-.gt .nm { flex: 1; width: 100%; margin-top: 6px; display: flex; align-items: center; justify-content: center; }
-.gt .nt { width: 100%; font-size: 14px; font-weight: 600; line-height: 1.25; color: var(--strong); }
+.gt .art { width: calc(108px * var(--s)); height: calc(72px * var(--s)); flex: none; }
+.gt .art img { max-width: calc(108px * var(--s)); max-height: calc(72px * var(--s)); }
+.gt .art .none { width: calc(40px * var(--s)); height: calc(40px * var(--s)); font-size: calc(18px * var(--s)); }
+.gt .nm { flex: 1; width: 100%; margin-top: calc(3px * var(--s)); display: flex; align-items: center; justify-content: center; }
+.gt .nt { width: 100%; font-size: var(--fs); font-weight: 600; line-height: 1.25; color: var(--strong); }
 .gt .nt .w { white-space: nowrap; }
 .gt.seen .nt { color: var(--text); font-weight: 400; }
 .gt.none .nt { color: var(--muted); font-weight: 400; }

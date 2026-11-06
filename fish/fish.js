@@ -26,11 +26,13 @@ const byVariant = new Map();     // fishId*2+shiny -> [{p, count, best, pools}]
 const playerByKey = new Map();   // normalized name -> player index
 let user = null;                 // player index, or null = everyone
 let tab = 'overview';
-let pview = 'card';              // profile: 'card' or 'log' (the fishing-log grid)
 let board = null;                // overview: index of the leaderboard shown in full, or null
-// flipped: fishIds showing the other side; hide: leave out fish this fisher hasn't caught
-// (on the side chosen under Show). Counts always cover every fish.
-const grid = { split: 'none', shiny: false, hide: false, flipped: new Set() };
+// Fish Log grid. flipped: fishIds showing the other side; hide: leave out fish not caught
+// (on the side chosen under Show). Counts always cover every fish. view and size are
+// remembered per browser (a convenience only).
+const grid = { view: 'table', size: 'large', split: 'none', shiny: false, hide: false, flipped: new Set() };
+const remember = (k, v) => { try { localStorage.setItem('fish.' + k, v); } catch (e) { /* private mode */ } };
+const recall = k => { try { return localStorage.getItem('fish.' + k); } catch (e) { return null; } };
 const sortState = { col: null, dir: 1 };
 const filters = { series: '', region: '', fish: '', art: '', variant: '', pools: '', count: '', best: '' };
 
@@ -53,14 +55,18 @@ function init(data) {
 
     const q = new URLSearchParams(location.search);
     if (['overview', 'log', 'profiles', 'help'].includes(q.get('tab'))) tab = q.get('tab');
-    if (q.get('view') === 'log') pview = 'log';
+    if (recall('view') === 'grid') grid.view = 'grid';
+    if (recall('size') === 'small') grid.size = 'small';
+    if (q.get('show') === 'grid' || q.get('view') === 'log') grid.view = 'grid';   // view=log: the old profile grid link
+    if (q.get('view') === 'log') tab = 'log';
+    if (q.get('size') === 'small') grid.size = 'small';
     if (/^[0-3]$/.test(q.get('board') || '')) board = +q.get('board');
     $('#user').value = q.get('user') || '';
     $('#user').addEventListener('input', () => { resolveUser(); renderAll(); });
     $('#clear').addEventListener('click', () => { $('#user').value = ''; resolveUser(); renderAll(); $('#user').focus(); });
-    // A tab always opens its main page (the board summary, the profile card).
+    // A tab opens its main page (the board summary); Table / Grid is a lasting choice.
     document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-        tab = b.dataset.tab; board = null; pview = 'card'; renderAll();
+        tab = b.dataset.tab; board = null; renderAll();
     }));
 
     const up = new Date(D.updated);
@@ -85,7 +91,7 @@ function renderAll() {
     const q = new URLSearchParams();
     if (user !== null) q.set('user', D.players[user].n.replace(/^@/, ''));
     if (tab !== 'overview') q.set('tab', tab);
-    if (tab === 'profiles' && user !== null && pview === 'log') q.set('view', 'log');
+    if (tab === 'log' && grid.view === 'grid') { q.set('show', 'grid'); if (grid.size === 'small') q.set('size', 'small'); }
     if (tab === 'overview' && board !== null) q.set('board', board);
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
@@ -97,7 +103,6 @@ function renderAll() {
 }
 
 function setUser(i) {
-    pview = 'card';
     $('#user').value = D.players[i].n;
     resolveUser();
     renderAll();
@@ -321,8 +326,20 @@ function filterRowHtml() {
         `<th>${txt('best', user === null ? 'Name or rating' : 'Rating')}</th></tr>`;
 }
 
+// "Show by: Table | Grid", above both views.
+function showByHtml() {
+    return `<span><span class="seg-label">Show by</span><span class="seg">${[['table', 'Table'], ['grid', 'Grid']].map(([v, label]) =>
+        `<button type="button" data-logview="${v}" class="${grid.view === v ? 'on' : ''}">${label}</button>`).join('')}</span></span>`;
+}
+function wireShowBy(el) {
+    el.querySelectorAll('[data-logview]').forEach(b => b.addEventListener('click', () => {
+        grid.view = b.dataset.logview; remember('view', grid.view); renderAll();
+    }));
+}
+
 function renderLog() {
     const el = $('#log');
+    if (grid.view === 'grid') return renderGrid(el);
     if (filters.art === 'seen' || filters.art === 'not') { if (user === null) filters.art = ''; }
     const all = logRows();
     const rows = sortRows(filterRows(all));
@@ -358,10 +375,12 @@ function renderLog() {
     }).join('') || `<tr><td colspan="${COLS.length}" class="dim">No fish match these filters.</td></tr>`;
 
     const known = new Set(all.filter(r => r.state === 'mine').map(r => r.fid * 2 + r.shiny)).size;
-    el.innerHTML = `<p class="log-info">${rows.length} of ${all.length} rows · ${known} of ${all.length} ${user === null ? 'caught by someone' : 'caught by you'}
+    el.innerHTML = `<div class="gridbar">${showByHtml()}</div>
+        <p class="log-info">${rows.length} of ${all.length} rows · ${known} of ${all.length} ${user === null ? 'caught by someone' : 'caught by you'}
         · click a heading to sort</p>
         <div class="scroll"><table class="fishlog"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
     el.style.setProperty('--thead-h', el.querySelector('thead').offsetHeight + 'px');
+    wireShowBy(el);
 
     el.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
         const c = th.dataset.sort;
@@ -398,7 +417,6 @@ function renderProfiles() {
         el.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => setUser(+b.dataset.p)));
         return;
     }
-    if (pview === 'log') return renderGrid(el);
     const p = D.players[user];
 
     // Level bar (XP is the G earned; the level table is cumulative).
@@ -453,10 +471,11 @@ function renderProfiles() {
         </div>
       </div>`;
     $('#allFishers').addEventListener('click', () => { $('#user').value = ''; resolveUser(); renderAll(); });
-    $('#openLog').addEventListener('click', () => { pview = 'log'; renderAll(); window.scrollTo(0, 0); });
+    // Shortcut to this fisher's log, as a grid, on the Fish Log tab.
+    $('#openLog').addEventListener('click', () => { tab = 'log'; grid.view = 'grid'; renderAll(); window.scrollTo(0, 0); });
 }
 
-// ------------------------------------------------------------------ profile: fishing-log grid
+// ------------------------------------------------------------------ fish log: grid view
 
 // Game order: series > region > base value > name (unnamed fish last).
 function gridOrder(a, b) {
@@ -464,11 +483,17 @@ function gridOrder(a, b) {
         (a[3] == null) - (b[3] == null) || (a[3] || '').localeCompare(b[3] || '') || a[0] - b[0];
 }
 
+// Tiles for the filtered fisher, or (no username) for everyone, as the table does:
+// "caught" then means caught by anyone, and the rating is the best anyone has.
 function renderGrid(el) {
-    const p = D.players[user];
-    const best = new Map();   // fishId*2+shiny -> this player's best rating (null = no rating)
-    for (const [pi, fid, shiny, , b] of D.catches) if (pi === user) best.set(fid * 2 + shiny, b);
+    const best = new Map();   // fishId*2+shiny -> best rating (null = no rating); present = caught
+    if (user !== null) {
+        for (const [pi, fid, shiny, , b] of D.catches) if (pi === user) best.set(fid * 2 + shiny, b);
+    } else {
+        for (const [k, list] of byVariant) best.set(k, list.reduce((a, e) => e.best != null && (a == null || e.best > a) ? e.best : a, null));
+    }
     const fish = [...D.fish].sort(gridOrder);
+    const you = user !== null;
 
     const sideOf = f => f[2] && (grid.shiny !== grid.flipped.has(f[0])) ? 1 : 0;
     const tileHtml = f => {
@@ -478,15 +503,17 @@ function renderGrid(el) {
         const rating = r == null ? '' : Math.round(r) >= 100 ? '100⭐' : Math.round(r);
         // A fish's name is public once anyone has caught either side (as in the Fish Log).
         const name = f[3] == null ? '???' : f[3].split(' ').map(w => `<span class="w">${esc(w)}</span>`).join(' ');
-        let mark = '', tip = '';
+        // The tooltip carries the name too: at Small size it's the readable copy.
+        let mark = '', tip = f[3] == null ? '???' : f[3];
         if (f[2]) {
             const cls = shiny ? 'on' : best.has(fid * 2 + 1) ? 'have' : 'off';
-            tip = shiny ? 'Shiny. Click for the normal one'
-                : cls === 'have' ? 'You have the shiny. Click to see it' : 'Shiny not caught yet. Click to see it';
+            tip += shiny ? ' (shiny). Click for the normal one'
+                : cls === 'have' ? (you ? '. You have the shiny: click to see it' : '. Its shiny has been caught: click to see it')
+                : '. Shiny not caught yet: click to see it';
             mark = `<span class="sp ${cls}" aria-hidden="true">${SHINY}</span>`;
         }
         const tag = f[2] ? 'button' : 'div';
-        return `<${tag} ${f[2] ? `type="button" data-flip="${fid}" title="${tip}"` : ''} class="gt ${state} ${shiny && state === 'mine' ? 'shiny' : ''}">
+        return `<${tag} ${f[2] ? `type="button" data-flip="${fid}"` : ''} title="${esc(tip)}" class="gt ${state} ${shiny && state === 'mine' ? 'shiny' : ''}">
             <span class="rt">${rating}</span>${mark}${art(fid, shiny, state)}
             <span class="nm"><span class="nt">${name}</span></span></${tag}>`;
     };
@@ -509,22 +536,26 @@ function renderGrid(el) {
     const shown = list => grid.hide ? list.filter(f => best.has(f[0] * 2 + (grid.shiny ? 1 : 0))) : list;
     const sections = groups.filter(g => shown(g.fish).length).map(g => `<section class="gsec">${grid.split === 'none' ? ''
         : `<h3>${title(g)} <span class="cnt">${count(g.fish)}</span></h3>`}
-        <div class="fgrid">${shown(g.fish).map(tileHtml).join('')}</div></section>`).join('')
-        || `<p class="dim">No ${grid.shiny ? 'shiny ' : ''}fish caught yet.</p>`;
+        <div class="fgrid ${grid.size}">${shown(g.fish).map(tileHtml).join('')}</div></section>`).join('')
+        || `<p class="dim">No ${grid.shiny ? 'shiny ' : ''}fish caught ${you ? 'by you ' : ''}yet.</p>`;
 
     const seg = (key, opts) => `<span class="seg">${opts.map(([v, label]) =>
         `<button type="button" data-${key}="${v}" class="${String(grid[key]) === String(v) ? 'on' : ''}">${label}</button>`).join('')}</span>`;
-    el.innerHTML = `<button type="button" class="back" id="backProfile">‹ ${esc(p.n)}'s profile</button>
-      <h2>${esc(p.n)}'s Fishing Log <span class="cnt">${count(fish)}${grid.shiny ? ' shiny' : ''}</span></h2>
+    el.innerHTML = `<div class="gridbar">${showByHtml()}
+        <span><span class="seg-label">Icon size</span>${seg('size', [['small', 'Small'], ['large', 'Large']])}</span></div>
       <div class="gridbar">
         <span><span class="seg-label">Group</span>${seg('split', [['none', 'All'], ['series', 'By series'], ['region', 'By region']])}</span>
         <span><span class="seg-label">Show</span>${seg('shiny', [[false, 'Normal'], [true, SHINY + ' Shiny']])}</span>
         <label class="check"><input type="checkbox" id="hideUncaught"${grid.hide ? ' checked' : ''}> Hide uncaught</label>
       </div>
-      <p class="grid-hint">Click a fish to flip between its normal and ${SHINY} shiny sides.</p>
+      <p class="log-info">${count(fish)}${grid.shiny ? ' shinies' : ''} ${you ? 'caught by you' : 'caught by someone'}
+        · click a fish to flip between its normal and ${SHINY} shiny sides</p>
       ${sections}`;
 
-    $('#backProfile').addEventListener('click', () => { pview = 'card'; renderAll(); window.scrollTo(0, 0); });
+    wireShowBy(el);
+    el.querySelectorAll('[data-size]').forEach(b => b.addEventListener('click', () => {
+        grid.size = b.dataset.size; remember('size', grid.size); renderAll();
+    }));
     el.querySelectorAll('[data-split]').forEach(b => b.addEventListener('click', () => { grid.split = b.dataset.split; renderGrid(el); }));
     el.querySelectorAll('[data-shiny]').forEach(b => b.addEventListener('click', () => {
         grid.shiny = b.dataset.shiny === 'true'; grid.flipped.clear(); renderGrid(el);
@@ -549,6 +580,8 @@ function renderGrid(el) {
 }
 
 // A single word too wide for its tile is squeezed sideways to fit, same font height.
+// A name needing more than the tile's two lines (none today) is set a little smaller,
+// so every tile stays the same size.
 function squeezeWords(root) {
     root.querySelectorAll('.gt .w').forEach(w => {
         const box = w.closest('.nt').clientWidth, width = w.getBoundingClientRect().width;  // (inline: no scrollWidth)
@@ -556,5 +589,9 @@ function squeezeWords(root) {
         const r = box / width;
         w.style.cssText = `display:inline-block;width:${box}px`;
         w.innerHTML = `<span style="display:inline-block;transform:scaleX(${r.toFixed(3)});transform-origin:left">${w.innerHTML}</span>`;
+    });
+    root.querySelectorAll('.gt .nt').forEach(nt => {
+        const room = nt.parentElement.clientHeight;
+        for (let k = 0.95; nt.offsetHeight > room + 1 && k > 0.6; k -= 0.05) nt.style.fontSize = `calc(${k} * var(--fs))`;
     });
 }
