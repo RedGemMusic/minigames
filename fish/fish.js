@@ -56,10 +56,11 @@ function init(data) {
     const q = new URLSearchParams(location.search);
     if (['overview', 'log', 'profiles', 'help'].includes(q.get('tab'))) tab = q.get('tab');
     if (recall('view') === 'grid') grid.view = 'grid';
-    if (recall('size') === 'small') grid.size = 'small';
+    const SIZES = ['small', 'medium', 'large'];
+    if (SIZES.includes(recall('size'))) grid.size = recall('size');
     if (q.get('show') === 'grid' || q.get('view') === 'log') grid.view = 'grid';   // view=log: the old profile grid link
     if (q.get('view') === 'log') tab = 'log';
-    if (q.get('size') === 'small') grid.size = 'small';
+    if (SIZES.includes(q.get('size'))) grid.size = q.get('size');
     if (/^[0-3]$/.test(q.get('board') || '')) board = +q.get('board');
     $('#user').value = q.get('user') || '';
     $('#user').addEventListener('input', () => { resolveUser(); renderAll(); });
@@ -91,7 +92,7 @@ function renderAll() {
     const q = new URLSearchParams();
     if (user !== null) q.set('user', D.players[user].n.replace(/^@/, ''));
     if (tab !== 'overview') q.set('tab', tab);
-    if (tab === 'log' && grid.view === 'grid') { q.set('show', 'grid'); if (grid.size === 'small') q.set('size', 'small'); }
+    if (tab === 'log' && grid.view === 'grid') { q.set('show', 'grid'); if (grid.size !== 'large') q.set('size', grid.size); }
     if (tab === 'overview' && board !== null) q.set('board', board);
     history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : ''));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
@@ -542,7 +543,7 @@ function renderGrid(el) {
     const seg = (key, opts) => `<span class="seg">${opts.map(([v, label]) =>
         `<button type="button" data-${key}="${v}" class="${String(grid[key]) === String(v) ? 'on' : ''}">${label}</button>`).join('')}</span>`;
     el.innerHTML = `<div class="gridbar">${showByHtml()}
-        <span><span class="seg-label">Icon size</span>${seg('size', [['small', 'Small'], ['large', 'Large']])}</span></div>
+        <span><span class="seg-label">Icon size</span>${seg('size', [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']])}</span></div>
       <div class="gridbar">
         <span><span class="seg-label">Group</span>${seg('split', [['none', 'All'], ['series', 'By series'], ['region', 'By region']])}</span>
         <span><span class="seg-label">Show</span>${seg('shiny', [[false, 'Normal'], [true, SHINY + ' Shiny']])}</span>

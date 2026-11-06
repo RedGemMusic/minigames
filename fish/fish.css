@@ -181,9 +181,10 @@ h2 .cnt, .gsec h3 .cnt { font-size: 14px; font-weight: 400; color: var(--muted);
 
 /* Every tile is the same fixed size: rating top left, shiny mark top right, the art
    in the middle, the name (two lines' room) at the bottom. Every length is a multiple
-   of --s, so Small (0.5) is Large scaled down by half. */
+   of --s, so Medium (0.75) and Small (0.5) are Large scaled down. */
 .fgrid { --s: 1; --fs: calc(14px * var(--s)); display: grid; grid-template-columns: repeat(auto-fill, calc(124px * var(--s)));
          gap: calc(8px * var(--s)); margin-bottom: 24px; }
+.fgrid.medium { --s: .75; }
 .fgrid.small { --s: .5; }
 .gt {
     position: relative; width: calc(124px * var(--s)); height: calc(140px * var(--s));
