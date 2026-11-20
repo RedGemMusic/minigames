@@ -211,6 +211,22 @@ button.gt:hover .sp { transform: scale(1.2); }
 .gt.seen .nt { color: var(--text); font-weight: 400; }
 .gt.none .nt { color: var(--muted); font-weight: 400; }
 
+table.rods { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rods th { text-align: right; color: var(--muted); font-weight: 400; font-size: 12px; padding: 0 0 6px 6px; }
+.rods th:first-child { text-align: left; padding-left: 0; }
+.rods td { padding: 5px 0 5px 6px; border-top: 1px solid var(--panel-2); }
+.rods td.n { padding-left: 0; color: var(--strong); }
+.rods td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.rods .tag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 0 5px; white-space: nowrap; }
+.box .note { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+.bait { list-style: none; }
+.bait li { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-top: 1px solid var(--panel-2); }
+.bait li:first-child { border-top: none; }
+.bait img { width: 48px; height: 48px; image-rendering: pixelated; flex: none; }  /* 48 px pixel art, shown 1:1 */
+.bait .nm { flex: 1; }
+.bait .cnt { color: var(--strong); font-weight: 600; font-variant-numeric: tabular-nums; }
+
 .recent { list-style: none; }
 .recent li { display: flex; gap: 10px; align-items: center; padding: 5px 0; border-top: 1px solid var(--panel-2); }
 .recent li:first-child { border-top: none; }

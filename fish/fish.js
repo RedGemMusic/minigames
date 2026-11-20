@@ -8,7 +8,10 @@
 //           imgFlags: 1 normal art, 2 shiny art, 4 silhouette (art exists only for caught variants)
 //   players [{n, lv, xp, cur, next, casts, landed, fish, treasure, shinies, legend,
 //             tiers: [common, uncommon, rare], g, chal, first (day),
-//             best: [fishId, shiny, value, rating], recent: [[fishId, shiny, value, rating]]}]
+//             best: [fishId, shiny, value, rating], recent: [[fishId, shiny, value, rating]],
+//             rods: [rodIx] unlocked, bait: [count per bait; null = unlimited (Basic Bait)]}]
+//   rods    [name, "Standard"|"Specialty", unique fish needed, [Common, Uncommon, Rare, Legendary %]]  (unlock order)
+//   bait    [name, hasImage]  (img/bait/<index>.png)
 //   No times of play are published (privacy), so recent catches are an order, not a timeline.
 //   catches [playerIx, fishId, shiny, count, bestRating, [poolIx]]
 
@@ -130,10 +133,13 @@ function art(fid, shiny, state) {
 }
 
 // Distinct fish caught per player: [normal, shiny].
+// Distinct fish caught per player: [normal, shiny, either]. A fish is a unique
+// catch whichever variant it was caught in (the game counts it that way, toward
+// the 708); only the progress bars and Normal/Shiny views count variants apart.
 function uniqueCounts() {
     const u = D.players.map(() => [new Set(), new Set()]);
     for (const [p, fid, shiny] of D.catches) u[p][shiny].add(fid);
-    return u.map(([n, s]) => [n.size, s.size]);
+    return u.map(([n, s]) => [n.size, s.size, new Set([...n, ...s]).size]);
 }
 
 // ------------------------------------------------------------------ overview
@@ -146,7 +152,7 @@ function boardDefs(uniq) {
             pic: i => { const b = D.players[i].best; return art(b[0], b[1], 'mine'); },
             sub: i => { const b = D.players[i].best; return `<span class="fname">${esc(fishName(b[0]))}</span>${b[1] ? ` <span class="shiny-mark">${SHINY}</span>` : ''} · rating ${b[3] ?? '?'}`; }
         },
-        { title: 'Unique fish caught', val: i => uniq[i][0] + uniq[i][1], show: v => fmt(v), sub: i => `${uniq[i][0]} normal · ${uniq[i][1]} shiny` },
+        { title: 'Unique fish caught', val: i => uniq[i][2], show: v => fmt(v) },
         { title: 'Total fish caught', val: i => D.players[i].fish, show: v => fmt(v) },
     ];
 }
@@ -414,7 +420,7 @@ function renderProfiles() {
     if (user === null) {
         el.innerHTML = '<h2>Fishers</h2><div class="players">' + D.players.map((p, i) =>
             `<button type="button" class="pcard" data-p="${i}"><div class="nm">${esc(p.n)}</div>
-             <div class="ln">Level ${p.lv} · ${fmt(p.fish)} fish · ${uniq[i][0] + uniq[i][1]} unique</div></button>`).join('') + '</div>';
+             <div class="ln">Level ${p.lv} · ${fmt(p.fish)} fish · ${uniq[i][2]} unique</div></button>`).join('') + '</div>';
         el.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => setUser(+b.dataset.p)));
         return;
     }
@@ -453,13 +459,30 @@ function renderProfiles() {
         `<li>${art(fid, shiny, 'mine')}<span class="nm">${esc(fishName(fid))}${shiny ? ` <span class="shiny-mark">${SHINY}</span>` : ''}
          <span class="dim"> · ${fmt(value)} ${D.currency} · rating ${rating ?? '?'}</span></span></li>`).join('') + '</ul>' : '<p class="dim">No catches yet.</p>';
 
+    // Rods (unlock order; the odds are each rarity's share of fish bites) and bait.
+    // A rod unlocks at a count of unique fish, either variant, as the bot counts it.
+    const myRods = p.rods || [];
+    const uniqueFish = uniq[user][2];
+    // The next threshold not yet reached (rods already earned arrive one per cast).
+    const nextRod = (D.rods || []).find((r, i) => !myRods.includes(i) && r[2] > uniqueFish);
+    const pctCell = w => `<td class="num">${w ? w + '%' : '<span class="dim">-</span>'}</td>`;
+    const rodBox = D.rods ? `<div class="box"><h3>Rods</h3>
+        <table class="rods"><tr><th>Rod</th><th>Common</th><th>Uncommon</th><th>Rare</th><th>Legendary</th></tr>
+        ${myRods.map(i => D.rods[i]).map(r => `<tr><td class="n">${esc(r[0])}${r[1] !== 'Standard' ? ' <span class="tag">specialty</span>' : ''}</td>
+            ${r[3].map(pctCell).join('')}</tr>`).join('')}</table>
+        <p class="note">${nextRod ? `Next rod at ${fmt(nextRod[2])} unique fish (${fmt(uniqueFish)} so far)` : 'Every rod unlocked'}</p></div>` : '';
+    const baitBox = D.bait && D.bait.length ? `<div class="box"><h3>Bait</h3><ul class="bait">${D.bait
+        .map((b, i) => [b, (p.bait || [])[i], i]).filter(([, n]) => n === null || n > 0)
+        .map(([b, n, i]) => `<li>${b[1] ? `<img src="../img/bait/${i}.png" alt="" loading="lazy">` : ''}<span class="nm">${esc(b[0])}</span>
+            <span class="cnt">${n === null ? '∞' : fmt(n)}</span></li>`).join('')}</ul></div>` : '';
+
     el.innerHTML = `<button type="button" class="back" id="allFishers">‹ All fishers</button>
       <div class="profile">
         <div class="phead"><div class="who"><div class="nm">${esc(p.n)}</div>
             <div class="ln">Level ${p.lv}</div><div class="ranks">${ranks}</div></div>
             <div class="lvl">${lvl}</div>
             <button type="button" class="logbtn" id="openLog"><span class="t">Fishing Log</span>
-              <span class="c">${uniq[user][0]} / ${D.fish.length}</span></button></div>
+              <span class="c">${uniq[user][2]} / ${D.fish.length}</span></button></div>
         <div class="pgrid">
           <div style="display:grid;gap:16px;align-content:start">
             <div class="box"><h3>Best catch ever</h3>${best}</div>
@@ -467,6 +490,7 @@ function renderProfiles() {
             <div class="box"><h3>Collection</h3><table class="series"><tr><th>Series</th><th>Normal</th><th>Shiny</th></tr>${series}</table></div>
           </div>
           <div style="display:grid;gap:16px;align-content:start">
+            ${rodBox}${baitBox}
             <div class="box"><h3>Recent catches</h3>${recent}</div>
           </div>
         </div>
